@@ -1,0 +1,28 @@
+// ------------------------------ stepping limit algo ---------------------------------------
+
+@Name('MODIFY_STEPPING_LIMIT_ORDER')
+@Subscriber(className='com.algoTrader.service.OrderServiceImpl$ModifyOrderSubscriber')
+select
+	case
+		when currentOrder.side = Side.BUY then OrderUtil.modifyOrderLimit(currentOrder, currentOrder.`limit` + currentOrder.increment)
+		when currentOrder.side = Side.SELL then OrderUtil.modifyOrderLimit(currentOrder, currentOrder.`limit` - currentOrder.increment)
+	end
+from pattern [
+	every currentOrder=com.algoTrader.entity.trade.SteppingLimitOrder  
+		-> (timer:interval(5 sec) and not OrderStatus(status = Status.EXECUTED or status = Status.CANCELED, parentOrder.number = currentOrder.number))]
+where
+	(currentOrder.side = Side.BUY and currentOrder.`limit` + currentOrder.increment <= currentOrder.maxLimit)
+or
+	(currentOrder.side = Side.SELL and currentOrder.`limit` - currentOrder.increment >= currentOrder.maxLimit);
+	
+@Name('CANCEL_STEPPING_LIMIT_ORDER')
+@Subscriber(className='com.algoTrader.service.OrderServiceImpl$CancleOrderSubscriber')
+select
+	currentOrder
+from pattern [
+	every currentOrder=com.algoTrader.entity.trade.SteppingLimitOrder 
+		-> (timer:interval(5 sec) and not OrderStatus(status = Status.EXECUTED or status = Status.CANCELED, parentOrder.number = currentOrder.number))]
+where
+	(currentOrder.side = Side.BUY and currentOrder.`limit` + currentOrder.increment > currentOrder.maxLimit)
+or
+	(currentOrder.side = Side.SELL and currentOrder.`limit` - currentOrder.increment < currentOrder.maxLimit);

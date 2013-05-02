@@ -1,0 +1,71 @@
+@Name('TICK_WINDOW')
+create window
+	TickWindow.std:groupwin(security.id).std:lastevent() 
+as
+	select *,
+	0 as tickerId
+from
+	Tick;
+	
+@Name('SUBSCRIBE_TICK')
+@RunTimeOnly()
+insert into
+	TickWindow
+select
+	tickerId,
+	tick.*
+from
+	SubscribeTickEvent;
+ 
+@Name('UNSUBSCRIBE_TICK')
+@RunTimeOnly()
+on
+	UnsubscribeTickEvent as unsubscribeEvent
+delete from
+	TickWindow as tickWindow
+where
+	tickWindow.security.id = unsubscribeEvent.securityId;
+
+@Name('RETRIEVE_TICK')
+@RunTimeOnly()
+on
+	TickWindow as trigger
+insert into
+	Tick
+select
+	current_timestamp.toDate() as dateTime,
+	tickWindow.last as last,
+	tickWindow.lastDateTime as lastDateTime,
+	tickWindow.vol as vol,
+	tickWindow.volBid as volBid,
+	tickWindow.volAsk as volAsk,
+	tickWindow.bid as bid,
+	tickWindow.ask as ask,
+	tickWindow.openIntrest as openIntrest,
+	tickWindow.settlement as settlement,
+	tickWindow.security as security
+from
+	TickWindow as tickWindow
+where
+	trigger.security.id = tickWindow.security.id
+and	
+	MarketDataUtil.isTickValid(tickWindow);
+	
+@Name('PROPAGATE_MARKET_DATA_EVENTS')
+@Subscriber(className='com.algoTrader.service.MarketDataServiceImpl$PropagateMarketDataEventSubscriber')
+select 
+	*
+from
+	MarketDataEvent;	
+	
+@Name('PERSIST_TICKS')
+@Subscriber(className='com.algoTrader.service.MarketDataServiceImpl$PersistTickSubscriber')
+@RunTimeOnly()
+on pattern
+	[every timer:at(*, *, *, *, 1:5, 0)]
+select
+	*
+from
+	TickWindow as tickWindow
+where	
+	MarketDataUtil.isTickValid(tickWindow);

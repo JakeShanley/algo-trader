@@ -1,0 +1,36 @@
+module movMain;
+
+@Name('CREATE_EXIT_VALUE')
+@Priority(4)
+@Subscriber(className='com.algoTrader.service.PositionServiceImpl$SetExitValueSubscriber')
+select position.id as positionId,
+exitValue.value as value
+from Tick as tick,
+method:LookupUtil.getPositions(tick.security) as position,
+method:MovUtil.getExitValue(position.strategy.name, tick.security, tick.currentValueDouble) as exitValue
+where exitValue.value > position.exitValue
+and position.quantity != 0;
+
+// Moving Average using Ta-Lib
+@Name('MOVING_AVERAGE')
+insert into Indicator
+select talib("movingAverage", currentValueDouble, movLengthFast, "Sma") - talib("movingAverage", currentValueDouble, movLengthSlow, "Sma") as value
+from Tick(security.isin = underlayingIsin);
+
+// Moving Average using of esper built in functions
+//@Name('MOVING_AVERAGE')
+//insert into Indicator
+//select stat1.average - stat2.average as value
+//from Tick(security.isin = underlayingIsin).win:length(movLengthFast).stat:uni(currentValueDouble) as stat1, 
+//Tick(security.isin = underlayingIsin).win:length(movLengthSlow).stat:uni(currentValueDouble) as stat2
+//where stat2.datapoints = movLengthSlow;
+
+@Name('OPEN_POSITION')
+@Subscriber(className='com.algoTrader.service.mov.MovServiceImpl$OpenPositionSubscriber')
+select
+engineStrategy.name as strategyName, 
+indexTick.security.id as underlayingid,
+indexTick.currentValue as underlayingSpot
+from pattern [every (indexTick=Tick(security.isin=underlayingIsin) -> indicator=Indicator)]
+where indicator.value > 0
+and prior(1, indicator.value) <= 0;

@@ -1,0 +1,16 @@
+@Name('CLOSE_POSITION')
+@Priority(1)
+@Subscriber(className='com.algoTrader.service.PositionServiceImpl$ClosePositionSubscriber')
+select
+	position.id
+from
+	CurrentValue as event,
+	method:LookupUtil.getPositions(event.security) as position
+where
+	position.quantity != 0
+and
+	position.exitValue is not null
+and
+	((position.short and (event.value >= position.exitValue))
+or
+	(position.long and (event.value <= position.exitValue)));

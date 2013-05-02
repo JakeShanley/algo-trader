@@ -1,0 +1,133 @@
+@Name('UPDATE_TICK_WINDOW_BID')
+@RunTimeOnly()
+on
+	IBTickPrice as tickPrice
+update
+	TickWindow as tickWindow
+set
+	tickWindow.bid = RoundUtil.getBigDecimal(tickPrice.price, tickWindow.security.securityFamily.scale)
+where
+	tickPrice.field = TickType.BID 
+and
+	tickWindow.tickerId = tickPrice.tickerId;
+	
+@Name('UPDATE_TICK_WINDOW_ASK')
+@RunTimeOnly()
+on
+	IBTickPrice as tickPrice
+update
+	TickWindow as tickWindow
+set
+	tickWindow.ask = RoundUtil.getBigDecimal(tickPrice.price, tickWindow.security.securityFamily.scale)
+where
+	tickPrice.field = TickType.ASK 
+and
+	tickWindow.tickerId = tickPrice.tickerId;
+
+@Name('UPDATE_TICK_WINDOW_LAST')
+@RunTimeOnly()
+on
+	IBTickPrice as tickPrice
+update
+	TickWindow as tickWindow
+set
+	tickWindow.last = RoundUtil.getBigDecimal(tickPrice.price, tickWindow.security.securityFamily.scale)
+where
+	tickPrice.field = TickType.`LAST` 
+and
+	tickWindow.tickerId = tickPrice.tickerId;
+
+@Name('UPDATE_TICK_WINDOW_CLOSE')
+@RunTimeOnly()
+on
+	IBTickPrice as tickPrice
+update
+	TickWindow as tickWindow
+set
+	tickWindow.settlement = RoundUtil.getBigDecimal(tickPrice.price, tickWindow.security.securityFamily.scale)
+where
+	tickPrice.field = TickType.CLOSE 
+and
+	tickWindow.tickerId = tickPrice.tickerId;
+	
+@Name('UPDATE_TICK_WINDOW_VOL_ASK')
+@RunTimeOnly()
+on
+	IBTickSize as tickSize
+update
+	TickWindow as tickWindow
+set
+	tickWindow.volAsk = tickSize.size
+where
+	tickSize.field = TickType.ASK_SIZE 
+and
+	tickWindow.tickerId = tickSize.tickerId;
+
+@Name('UPDATE_TICK_WINDOW_VOL_BID')
+@RunTimeOnly()
+on
+	IBTickSize as tickSize
+update
+	TickWindow as tickWindow
+set
+	tickWindow.volBid = tickSize.size
+where
+	tickSize.field = TickType.BID_SIZE 
+and
+	tickWindow.tickerId = tickSize.tickerId;
+	
+@Name('UPDATE_TICK_WINDOW_VOL')
+@RunTimeOnly()
+on
+	IBTickSize as tickSize
+update
+	TickWindow as tickWindow
+set
+	tickWindow.vol = tickSize.size
+where
+	tickSize.field = TickType.VOLUME 
+and
+	tickWindow.tickerId = tickSize.tickerId;
+
+@Name('UPDATE_TICK_WINDOW_CALL_OPEN_INTEREST')
+@RunTimeOnly()
+on
+	IBTickSize as tickSize
+update
+	TickWindow as tickWindow
+set
+	tickWindow.openIntrest = tickSize.size
+where
+	tickSize.field = TickType.OPTION_CALL_OPEN_INTEREST
+and
+	cast(tickWindow.security.type?, com.algoTrader.enumeration.OptionType) = OptionType.CALL
+and
+	tickWindow.tickerId = tickSize.tickerId;
+
+@Name('UPDATE_TICK_WINDOW_PUT_OPEN_INTEREST')
+@RunTimeOnly()
+on
+	IBTickSize as tickSize
+update
+	TickWindow as tickWindow
+set
+	tickWindow.openIntrest = tickSize.size
+where
+	tickSize.field = TickType.OPTION_PUT_OPEN_INTEREST
+and
+	cast(tickWindow.security.type?, com.algoTrader.enumeration.OptionType) = OptionType.PUT
+and
+	tickWindow.tickerId = tickSize.tickerId;
+
+@Name('UPDATE_TICK_LAST_TIMESTAMP')
+@RunTimeOnly()
+on
+	IBTickString as tickString
+update
+	TickWindow as tickWindow
+set
+	tickWindow.lastDateTime = IBUtil.getLastDateTime(tickString.value)
+where
+	tickString.field = TickType.LAST_TIMESTAMP 
+and
+	tickWindow.tickerId = tickString.tickerId;
